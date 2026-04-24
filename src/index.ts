@@ -1,19 +1,21 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import cors from 'cors';
+import { createApp } from './app';
+import { env } from './config/env';
+import { closeMongo, connectMongo } from './config/mongodb';
 
-dotenv.config();
+const app = createApp();
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(cors());
-app.use(express.json());
-
-app.get('/', (req, res) => {
-  res.json({ message: 'Server Running' });
+const server = app.listen(env.port, async () => {
+  await connectMongo();
+  console.log(`Server is running at http://localhost:${env.port}`);
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running at http://localhost:${PORT}`);
-});
+const shutdown = async () => {
+  console.log('Shutting down server...');
+  server.close(async () => {
+    await closeMongo();
+    process.exit(0);
+  });
+};
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

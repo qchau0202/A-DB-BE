@@ -1,0 +1,20 @@
+-- SQL schema for DevConnect social graph
+CREATE TABLE IF NOT EXISTS "Users" (
+  "ID" BIGSERIAL PRIMARY KEY,
+  "Username" VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS "Following" (
+  "FollowerID" BIGINT NOT NULL REFERENCES "Users"("ID") ON DELETE CASCADE,
+  "FolloweeID" BIGINT NOT NULL REFERENCES "Users"("ID") ON DELETE CASCADE,
+  "Since" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY ("FollowerID", "FolloweeID")
+);
+
+-- Optional SQL table for analytics examples
+CREATE TABLE IF NOT EXISTS posts_sql (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES "Users"("ID") ON DELETE CASCADE,
+  likes INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

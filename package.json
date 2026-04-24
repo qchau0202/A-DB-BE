@@ -1,12 +1,11 @@
 {
   "name": "a-db-be",
   "version": "1.0.0",
-  "type": "module",
-  "description": "",
-  "main": "index.js",
+  "description": "DevConnect backend for Advanced Database final project",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon src/index.ts",
+    "test": "echo \"No tests configured yet\"",
+    "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js"
   },
@@ -14,9 +13,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "mongodb": "^6.20.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
@@ -24,6 +25,7 @@
     "@types/node": "^25.6.0",
     "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
     "typescript": "^6.0.3"
   }
 }
