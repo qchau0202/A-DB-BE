@@ -82,7 +82,3 @@ src/
 
 - `GET /` - service status
 - `GET /api/v1/health`
-- `GET /api/v1/social-graph/mutual-connections/query?userId=1`
-- `POST /api/v1/posts/indexes/text`
-- `POST /api/v1/posts`
-- `GET /api/v1/analytics/influential-snippets/query`
