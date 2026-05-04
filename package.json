@@ -5,9 +5,11 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "echo \"No tests configured yet\"",
-    "dev": "tsx watch src/index.ts",
+    "dev": "nodemon",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "prestart": "npm run build",
+    "start": "node dist/index.js",
+    "db:setup:mongo": "node src/db/nosql/001_mongodb_setup.js"
   },
   "keywords": [],
   "author": "",

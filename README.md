@@ -12,19 +12,27 @@ Backend scaffold for Topic 10: **DevConnect: Social Platform for Developers**.
 
 ```text
 src/
-	app.ts
 	index.ts
 	config/
 		env.ts
 		mongodb.ts
 		supabase.ts
+	controller/
+		auth/
+			auth.controller.ts
 	db/
 		impedance-mismatch.md
 		sql/
 			schema.sql
+		nosql/
+			001_mongodb_setup.js
 	middlewares/
 		error.middleware.ts
 	routes/
+		auth/
+			index.ts
+			registration.routes.ts
+			session.routes.ts
 		index.ts
 	modules/
 		README.md
@@ -71,12 +79,20 @@ src/
 	 npm run dev
 	 ```
 
+   The server now connects to MongoDB during startup, so it will fail fast if `MONGODB_URI` is missing or unreachable.
+
 4. Build for production:
 
 	 ```bash
 	 npm run build
 	 npm start
 	 ```
+
+## Postman
+
+- Import [postman/DevConnect-Auth.postman_collection.json](postman/DevConnect-Auth.postman_collection.json)
+- Import [postman/DevConnect-Local.postman_environment.json](postman/DevConnect-Local.postman_environment.json)
+- Set `accessToken` and `refreshToken` from the sign-in response before calling `me` or `sign-out`
 
 ## Current API Endpoints (Starter)
 

@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { healthRouter } from '../modules/health/health.routes';
-import { socialGraphRouter } from '../modules/social-graph/social-graph.routes';
-import { postsRouter } from '../modules/posts/posts.routes';
-import { analyticsRouter } from '../modules/analytics/analytics.routes';
+import { authRouter } from './auth';
+import { profileRouter } from './profile/profile.routes';
+import { postRouter } from './posts/post.routes';
 
 export const apiRouter = Router();
 
-apiRouter.use('/health', healthRouter);
-apiRouter.use('/social-graph', socialGraphRouter);
-apiRouter.use('/posts', postsRouter);
-apiRouter.use('/analytics', analyticsRouter);
+apiRouter.use('/auth', authRouter);
+apiRouter.use('/profile', profileRouter);
+apiRouter.use('/posts', postRouter);
+
+console.log('[Routes] Registered: /api/auth/*, /api/profile/*, /api/posts/*');
