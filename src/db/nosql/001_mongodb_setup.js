@@ -70,30 +70,55 @@ const collectionSpecs = [
     validator: {
       $jsonSchema: {
         bsonType: 'object',
-        required: ['version', 'is_published', 'createdAt'],
+        required: ['author_id', 'title', 'body', 'version', 'is_published', 'createdAt'],
         properties: {
-          parent_doc_id: { bsonType: ['objectId', 'null'] },
-          title: { bsonType: 'string' },
-          slug: { bsonType: ['string', 'null'] },
-          body_blocks: {
+          author_id: { bsonType: 'string' },
+          editors: {
             bsonType: ['array', 'null'],
-            items: {
-              bsonType: 'object',
-            },
+            items: { bsonType: 'string' },
+          },
+          title: { bsonType: 'string' },
+          body: { bsonType: 'string' },
+          parent_doc_id: { bsonType: ['objectId', 'null'] },
+          category_tags: {
+            bsonType: ['array', 'null'],
+            items: { bsonType: 'string' },
           },
           version: { bsonType: 'int', minimum: 0 },
           is_published: { bsonType: 'bool' },
+          view_count: { bsonType: ['int', 'long'], minimum: 0 },
+          reactions: {
+            bsonType: 'object',
+            properties: {
+              like: { bsonType: ['int', 'long'], minimum: 0 },
+              insightful: { bsonType: ['int', 'long'], minimum: 0 },
+            },
+          },
+          comment_count: { bsonType: ['int', 'long'], minimum: 0 },
           createdAt: { bsonType: 'date' },
           updatedAt: { bsonType: ['date', 'null'] },
         },
       },
     },
     indexes: [
-      { key: { parent_doc_id: 1, version: -1 }, options: { name: 'parent_version_idx' } },
+      { key: { author_id: 1, createdAt: -1 }, options: { name: 'author_createdAt_idx' } },
+      { key: { parent_doc_id: 1 }, options: { name: 'parent_doc_idx' } },
+      { key: { category_tags: 1 }, options: { name: 'category_tags_idx' } },
       { key: { is_published: 1, createdAt: -1 }, options: { name: 'published_feed_idx' } },
+      {
+        key: { title: 'text', body: 'text' },
+        options: {
+          name: 'documents_search',
+          weights: { title: 10, body: 5 },
+        },
+      },
     ],
     notes: [
-      'Recursive traversal is handled at query time with $graphLookup up to 5 levels deep.',
+      'Atlas Search index for title and body should be created in Atlas UI.',
+      'version field is for optimistic locking - reject writes if version mismatches.',
+      'parent_doc_id enables hierarchical document structure.',
+      'editors array tracks users who have edited this document.',
+      'view_count is batch-updated via Redis + $inc.',
     ],
   },
   {
@@ -101,21 +126,38 @@ const collectionSpecs = [
     validator: {
       $jsonSchema: {
         bsonType: 'object',
-        required: ['media_url', 'createdAt'],
+        required: ['author_id', 'media_url', 'media_type', 'notify', 'createdAt'],
         properties: {
-          author_id: { bsonType: ['string', 'null'] },
+          author_id: { bsonType: 'string' },
           media_url: { bsonType: 'string' },
+          media_type: { enum: ['image', 'video'] },
           caption: { bsonType: ['string', 'null'] },
+          viewers: {
+            bsonType: ['array', 'null'],
+            items: { bsonType: 'string' },
+          },
+          reactions: {
+            bsonType: 'object',
+            properties: {
+              like: { bsonType: ['int', 'long'], minimum: 0 },
+            },
+          },
+          notify: { bsonType: 'bool' },
           createdAt: { bsonType: 'date' },
           updatedAt: { bsonType: ['date', 'null'] },
         },
       },
     },
     indexes: [
+      { key: { author_id: 1, createdAt: -1 }, options: { name: 'author_createdAt_idx' } },
       { key: { createdAt: 1 }, options: { name: 'ttl_idx', expireAfterSeconds: 86400 } },
     ],
     notes: [
       'Ephemeral stories expire automatically after 24 hours.',
+      'media_type guides frontend renderer (image|video).',
+      'viewers array tracks UUIDs who have seen this quickie.',
+      'reactions.like is a lightweight single reaction type.',
+      'notify is always false to suppress push notifications.',
     ],
   },
   {
@@ -144,27 +186,37 @@ const collectionSpecs = [
     ],
   },
   {
-    name: 'userReactions',
+    name: 'notifications',
     validator: {
       $jsonSchema: {
         bsonType: 'object',
-        required: ['user_id', 'target_id', 'target_type', 'createdAt'],
+        required: ['recipient_id', 'sender_id', 'type', 'title', 'is_read', 'createdAt'],
         properties: {
-          user_id: { bsonType: 'string' },
-          target_id: { bsonType: 'objectId' },
-          target_type: { enum: ['post', 'document', 'comment', 'quickie'] },
-          reaction_type: { bsonType: ['string', 'null'] },
+          recipient_id: { bsonType: 'string' },
+          sender_id: { bsonType: 'string' },
+          type: { enum: ['follow', 'post_like', 'post_comment', 'quickie_view', 'quickie_react', 'document_like', 'mention'] },
+          title: { bsonType: 'string' },
+          body: { bsonType: ['string', 'null'] },
+          target_id: { bsonType: ['string', 'null'] },
+          target_type: { enum: ['post', 'comment', 'quickie', 'document', null] },
+          is_read: { bsonType: 'bool' },
           createdAt: { bsonType: 'date' },
           updatedAt: { bsonType: ['date', 'null'] },
         },
       },
     },
     indexes: [
-      { key: { user_id: 1, target_id: 1, target_type: 1 }, options: { name: 'unique_rxn', unique: true } },
-      { key: { target_id: 1, createdAt: -1 }, options: { name: 'reaction_target_idx' } },
+      { key: { recipient_id: 1, is_read: 1, createdAt: -1 }, options: { name: 'recipient_unread_idx' } },
+      { key: { recipient_id: 1, createdAt: -1 }, options: { name: 'recipient_feed_idx' } },
+      { key: { sender_id: 1, createdAt: -1 }, options: { name: 'sender_idx' } },
+      { key: { target_id: 1, type: 1 }, options: { name: 'target_type_idx' } },
     ],
     notes: [
-      'Use the toggle pattern: insert reaction, increment the target counter, and on duplicate delete the reaction and decrement the counter.',
+      'recipient_id: UUID of the user receiving the notification',
+      'sender_id: UUID of the user who triggered the notification',
+      'target_id: Optional ID of the related entity (post, comment, etc.)',
+      'target_type: Type of the related entity for context',
+      'is_read: Boolean flag to track read status',
     ],
   },
 ];

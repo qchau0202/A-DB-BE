@@ -1,5 +1,5 @@
 import cors from 'cors';
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { env } from './config/env';
 import { closeMongo, connectMongo } from './config/mongodb';
 import { apiRouter } from './routes';
@@ -9,12 +9,18 @@ import { requestLogger } from './middlewares/request.middleware';
 const createApp = () => {
   const app = express();
 
-  app.use(cors());
+  // CORS for frontend integration
+  app.use(cors({
+    origin: ['http://localhost:5173', 'http://localhost:5174', process.env.FRONTEND_URL_DEV].filter(Boolean),
+    credentials: true,
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  }));
   app.use(express.json());
 
   app.use(requestLogger);
 
-  app.get('/', (_req, res) => {
+  app.get('/', (_req: Request, res: Response) => {
     res.json({
       service: 'DevConnect API',
       status: 'ok',

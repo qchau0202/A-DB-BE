@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 import { getProfileById, getProfileByUserId, updateProfileById } from '../../controller/profile/profile.controller';
 import { followUser, unfollowUser, getFollowers, getFollowing, isFollowing } from '../../controller/profile/follow.controller';
 import { callSupabaseAuth } from '../../controller/auth/auth.controller';
+import { createFollowNotification } from '../../controller/notifications/notification.controller';
 
 export const profileRouter = Router();
 
@@ -114,6 +115,19 @@ profileRouter.post('/follow/:userId', async (req: Request, res: Response, next: 
     }
 
     const result = await followUser(followerId, followingId);
+
+    // Get follower's profile for notification
+    const followerProfile = await getProfileByUserId(followerId);
+    const followerName = followerProfile?.display_name || 'Someone';
+
+    // Create follow notification
+    try {
+      await createFollowNotification(followerId, followingId, followerName);
+    } catch (notifyErr) {
+      console.error('Failed to create follow notification:', notifyErr);
+      // Don't fail the follow action if notification fails
+    }
+
     res.status(201).json({ message: 'User followed successfully', follow: result });
   } catch (err) {
     next(err);
