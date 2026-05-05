@@ -6,6 +6,8 @@ import {
   updatePost,
   deletePost,
   getLatestPosts,
+  getPopularPosts,
+  getActivePosts,
   getPostsByAuthor,
   getPostsByTags,
   getAnnouncements,
@@ -76,6 +78,32 @@ postRouter.get('/feed/latest', async (req: Request, res: Response, next: NextFun
     const skip = parseInt(req.query.skip as string) || 0;
 
     const posts = await getLatestPosts(limit, skip);
+    res.status(200).json({ posts, count: posts.length });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Get popular posts (sorted by engagement)
+postRouter.get('/feed/popular', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+    const skip = parseInt(req.query.skip as string) || 0;
+
+    const posts = await getPopularPosts(limit, skip);
+    res.status(200).json({ posts, count: posts.length });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Get active posts (recently updated or high activity)
+postRouter.get('/feed/active', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+    const skip = parseInt(req.query.skip as string) || 0;
+
+    const posts = await getActivePosts(limit, skip);
     res.status(200).json({ posts, count: posts.length });
   } catch (err) {
     next(err);

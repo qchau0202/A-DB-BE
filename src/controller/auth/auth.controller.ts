@@ -179,12 +179,16 @@ export const authController = {
         }),
       });
 
+      // Construct session from either nested session object or direct tokens
+      const session = result.session ?? {
+        access_token: result.access_token,
+        refresh_token: result.refresh_token,
+      };
+
       res.status(200).json({
         message: 'Login successful',
         user: result.user ?? null,
-        session: result.session ?? null,
-        access_token: result.access_token ?? null,
-        refresh_token: result.refresh_token ?? null,
+        session,
       });
     } catch (error) {
       next(error);
@@ -202,12 +206,16 @@ export const authController = {
         }),
       });
 
+      // Construct session from either nested session object or direct tokens
+      const session = result.session ?? {
+        access_token: result.access_token,
+        refresh_token: result.refresh_token,
+      };
+
       res.status(200).json({
         message: 'Session refreshed',
         user: result.user ?? null,
-        session: result.session ?? null,
-        access_token: result.access_token ?? null,
-        refresh_token: result.refresh_token ?? null,
+        session,
       });
     } catch (error) {
       next(error);

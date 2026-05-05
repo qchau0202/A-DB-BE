@@ -9,7 +9,9 @@
     "build": "tsc",
     "prestart": "npm run build",
     "start": "node dist/index.js",
-    "db:setup:mongo": "node src/db/nosql/001_mongodb_setup.js"
+    "db:setup:mongo": "node src/db/nosql/001_mongodb_setup.js",
+    "seed": "tsx src/db/seed.ts",
+    "seed:api": "tsx src/db/seed-api.ts"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +21,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "ioredis": "^5.10.1",
     "mongodb": "^6.20.0"
   },
   "devDependencies": {

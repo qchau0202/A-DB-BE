@@ -1,5 +1,6 @@
 import { ObjectId } from 'mongodb';
 import { getMongoDb } from '../../config/mongodb';
+import { incrementViewCount as redisIncrementView, getViewCount } from '../../config/redis';
 
 type ContentBlock = {
   type: 'text' | 'image' | 'code' | 'poll';
@@ -52,6 +53,26 @@ export const getPostById = async (id: string) => {
   return post ?? null;
 };
 
+// Increment view count using Redis for high-performance counting
+export const incrementPostView = async (id: string, userId?: string) => {
+  if (!ObjectId.isValid(id)) {
+    throw new Error('Invalid post ID');
+  }
+
+  // Use Redis for fast view counting
+  const newCount = await redisIncrementView('post', id, userId);
+
+  // Also increment in MongoDB periodically (every 10 views)
+  if (newCount % 10 === 0) {
+    await getPostsCollection().updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { view_count: newCount } }
+    );
+  }
+
+  return newCount;
+};
+
 export const updatePost = async (id: string, authorId: string, updates: Partial<PostPayload>) => {
   if (!ObjectId.isValid(id)) {
     throw new Error('Invalid post ID');
@@ -99,6 +120,45 @@ export const getLatestPosts = async (limit = 20, skip = 0) => {
   const posts = await getPostsCollection()
     .find({ visibility: 'public' })
     .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .toArray();
+
+  return posts;
+};
+
+// Get popular posts sorted by engagement score
+export const getPopularPosts = async (limit = 20, skip = 0) => {
+  const posts = await getPostsCollection()
+    .find({ visibility: 'public' })
+    .sort({ 
+      reactions_total: -1, 
+      comment_count: -1,
+      view_count: -1,
+      createdAt: -1 
+    })
+    .skip(skip)
+    .limit(limit)
+    .toArray();
+
+  return posts;
+};
+
+// Get active posts (recently updated or high activity)
+export const getActivePosts = async (limit = 20, skip = 0) => {
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+  const posts = await getPostsCollection()
+    .find({ 
+      visibility: 'public',
+      $or: [
+        { comment_count: { $gte: 5 } },
+        { reactions_total: { $gte: 10 } },
+        { updatedAt: { $gte: oneWeekAgo } }
+      ]
+    })
+    .sort({ updatedAt: -1, reactions_total: -1 })
     .skip(skip)
     .limit(limit)
     .toArray();
@@ -180,9 +240,12 @@ export default {
   updatePost,
   deletePost,
   getLatestPosts,
+  getPopularPosts,
+  getActivePosts,
   getPostsByAuthor,
   getPostsByTags,
   getAnnouncements,
   addReaction,
   searchPosts,
+  incrementPostView,
 };

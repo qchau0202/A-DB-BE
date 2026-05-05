@@ -6,6 +6,10 @@ import { commentRouter } from './comments/comment.routes';
 import { quickieRouter } from './quickies/quickie.routes';
 import { documentRouter } from './documents/document.routes';
 import { notificationRouter } from './notifications/notification.routes';
+import { snippetsRouter } from './snippets/snippets.routes';
+import { rankingRouter } from './ranking/ranking.routes';
+import { connectionsRouter } from './connections/connections.routes';
+import { categoriesRouter } from './categories/categories.routes';
 
 export const apiRouter = Router();
 
@@ -16,5 +20,9 @@ apiRouter.use('/comments', commentRouter);
 apiRouter.use('/quickies', quickieRouter);
 apiRouter.use('/documents', documentRouter);
 apiRouter.use('/notifications', notificationRouter);
+apiRouter.use('/snippets', snippetsRouter);
+apiRouter.use('/ranking', rankingRouter);
+apiRouter.use('/connections', connectionsRouter);
+apiRouter.use('/categories', categoriesRouter);
 
-console.log('[Routes] Registered: /api/auth/*, /api/profile/*, /api/posts/*, /api/comments/*, /api/quickies/*, /api/documents/*, /api/notifications/*');
+console.log('[Routes] Registered: /api/auth/*, /api/profile/*, /api/posts/*, /api/comments/*, /api/quickies/*, /api/documents/*, /api/notifications/*, /api/snippets/*, /api/ranking/*, /api/connections/*, /api/categories/*');
