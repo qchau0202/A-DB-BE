@@ -1,5 +1,10 @@
 import { supabase, supabaseAdmin } from '../../config/supabase';
 
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const validateUUID = (id: string): boolean => UUID_REGEX.test(id);
+
 export const followUser = async (followerId: string, followingId: string) => {
   if (followerId === followingId) {
     throw new Error('Cannot follow yourself');
@@ -45,6 +50,10 @@ export const unfollowUser = async (followerId: string, followingId: string) => {
 };
 
 export const getFollowers = async (userId: string) => {
+  if (!validateUUID(userId)) {
+    return [];
+  }
+  
   const client = supabaseAdmin ?? supabase;
   const { data, error } = await client
     .from('follows')
@@ -59,6 +68,10 @@ export const getFollowers = async (userId: string) => {
 };
 
 export const getFollowing = async (userId: string) => {
+  if (!validateUUID(userId)) {
+    return [];
+  }
+  
   const client = supabaseAdmin ?? supabase;
   const { data, error } = await client
     .from('follows')
@@ -73,6 +86,10 @@ export const getFollowing = async (userId: string) => {
 };
 
 export const isFollowing = async (followerId: string, followingId: string) => {
+  if (!validateUUID(followerId) || !validateUUID(followingId)) {
+    return false;
+  }
+  
   const client = supabaseAdmin ?? supabase;
   const { data, error } = await client
     .from('follows')

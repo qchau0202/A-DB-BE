@@ -45,11 +45,15 @@ export const createDocument = async (payload: DocumentPayload) => {
 };
 
 export const getDocumentById = async (id: string) => {
-  if (!ObjectId.isValid(id)) {
-    throw new Error('Invalid document ID');
+  // Accept either Mongo ObjectId (24-hex) or string _id (e.g. UUID or custom id)
+  let doc: any = null;
+  if (ObjectId.isValid(id)) {
+    doc = await getDocumentsCollection().findOne({ _id: new ObjectId(id) });
+    if (doc) return doc;
   }
 
-  const doc = await getDocumentsCollection().findOne({ _id: new ObjectId(id) });
+  // Fallback: attempt to find by literal string _id (some imports/records may use string ids)
+  doc = await getDocumentsCollection().findOne({ _id: id as any });
   return doc ?? null;
 };
 
@@ -95,13 +99,12 @@ export const getDocumentsByTags = async (tags: string[], limit = 20, skip = 0) =
 };
 
 export const getChildDocuments = async (parentId: string, limit = 20, skip = 0) => {
-  if (!ObjectId.isValid(parentId)) {
-    throw new Error('Invalid parent document ID');
-  }
+  // Allow parentId to be either ObjectId or string id
+  const parentFilter = ObjectId.isValid(parentId) ? new ObjectId(parentId) : parentId;
 
   const docs = await getDocumentsCollection()
     .find({
-      parent_doc_id: new ObjectId(parentId),
+      parent_doc_id: parentFilter,
       is_published: true,
     })
     .sort({ createdAt: -1 })
@@ -114,12 +117,10 @@ export const getChildDocuments = async (parentId: string, limit = 20, skip = 0) 
 
 // Optimistic locking update - rejects if version mismatches
 export const updateDocument = async (id: string, payload: DocumentUpdatePayload) => {
-  if (!ObjectId.isValid(id)) {
-    throw new Error('Invalid document ID');
-  }
-
+  // Accept ObjectId or string _id
+  const idFilter = ObjectId.isValid(id) ? new ObjectId(id) : (id as any);
   const filter: Record<string, unknown> = {
-    _id: new ObjectId(id),
+    _id: idFilter as any,
     version: payload.expected_version,
   };
 
@@ -164,12 +165,10 @@ export const updateDocument = async (id: string, payload: DocumentUpdatePayload)
 };
 
 export const deleteDocument = async (id: string, userId: string) => {
-  if (!ObjectId.isValid(id)) {
-    throw new Error('Invalid document ID');
-  }
+  const idFilter = ObjectId.isValid(id) ? new ObjectId(id) : (id as any);
 
   const result = await getDocumentsCollection().deleteOne({
-    _id: new ObjectId(id),
+    _id: idFilter as any,
     $or: [
       { author_id: userId },
       { editors: userId },
@@ -180,14 +179,11 @@ export const deleteDocument = async (id: string, userId: string) => {
 };
 
 export const addReaction = async (id: string, reactionType: 'like' | 'insightful') => {
-  if (!ObjectId.isValid(id)) {
-    throw new Error('Invalid document ID');
-  }
-
+  const idFilter = ObjectId.isValid(id) ? new ObjectId(id) : (id as any);
   const updateField = `reactions.${reactionType}`;
 
   const result = await getDocumentsCollection().findOneAndUpdate(
-    { _id: new ObjectId(id), is_published: true },
+    { _id: idFilter as any, is_published: true },
     {
       $inc: { [updateField]: 1 },
       $set: { updatedAt: new Date() },
@@ -199,12 +195,10 @@ export const addReaction = async (id: string, reactionType: 'like' | 'insightful
 };
 
 export const incrementViewCount = async (id: string) => {
-  if (!ObjectId.isValid(id)) {
-    throw new Error('Invalid document ID');
-  }
+  const idFilter = ObjectId.isValid(id) ? new ObjectId(id) : (id as any);
 
   const result = await getDocumentsCollection().findOneAndUpdate(
-    { _id: new ObjectId(id), is_published: true },
+    { _id: idFilter as any, is_published: true },
     { $inc: { view_count: 1 } },
     { returnDocument: 'after' }
   );

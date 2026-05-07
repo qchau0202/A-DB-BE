@@ -10,6 +10,8 @@ import { snippetsRouter } from './snippets/snippets.routes';
 import { rankingRouter } from './ranking/ranking.routes';
 import { connectionsRouter } from './connections/connections.routes';
 import { categoriesRouter } from './categories/categories.routes';
+import userRouter from './users/user.routes';
+import adminRouter from './admin/admin.routes';
 
 export const apiRouter = Router();
 
@@ -24,5 +26,7 @@ apiRouter.use('/snippets', snippetsRouter);
 apiRouter.use('/ranking', rankingRouter);
 apiRouter.use('/connections', connectionsRouter);
 apiRouter.use('/categories', categoriesRouter);
+apiRouter.use('/users', userRouter);
+apiRouter.use('/admin', adminRouter);
 
-console.log('[Routes] Registered: /api/auth/*, /api/profile/*, /api/posts/*, /api/comments/*, /api/quickies/*, /api/documents/*, /api/notifications/*, /api/snippets/*, /api/ranking/*, /api/connections/*, /api/categories/*');
+console.log('[Routes] Registered: /api/auth/*, /api/profile/*, /api/posts/*, /api/comments/*, /api/quickies/*, /api/documents/*, /api/notifications/*, /api/snippets/*, /api/ranking/*, /api/connections/*, /api/categories/*, /api/users/*, /api/admin/*');

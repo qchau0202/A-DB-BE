@@ -2,16 +2,20 @@ import cors from 'cors';
 import express, { Request, Response } from 'express';
 import { env } from './config/env';
 import { closeMongo, connectMongo } from './config/mongodb';
+import { supabaseAdmin } from './config/supabase';
 import { apiRouter } from './routes';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 import { requestLogger } from './middlewares/request.middleware';
 
 const createApp = () => {
   const app = express();
+  const allowedOrigins = ['http://localhost:5173', 'http://localhost:5174', process.env.FRONTEND_URL_DEV].filter(
+    (origin): origin is string => Boolean(origin),
+  );
 
   // CORS for frontend integration
   app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174', process.env.FRONTEND_URL_DEV].filter(Boolean),
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
@@ -36,7 +40,25 @@ const createApp = () => {
 };
 
 const start = async () => {
+  // Connect to MongoDB
   await connectMongo();
+
+  // Verify Supabase connection
+  if (supabaseAdmin) {
+    try {
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1 });
+      if (error) {
+        console.error('Supabase connection failed:', error.message);
+        console.error('Check your SUPABASE_SERVICE_ROLE_KEY environment variable');
+      } else {
+        console.log(`Supabase connected (found ${data.total} auth users)`);
+      }
+    } catch (err) {
+      console.error('Supabase connection error:', err);
+    }
+  } else {
+    console.warn('Supabase admin client not configured - user sync features disabled');
+  }
 
   const app = createApp();
   const server = app.listen(env.port, () => {

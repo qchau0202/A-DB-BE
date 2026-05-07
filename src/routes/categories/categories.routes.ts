@@ -14,7 +14,38 @@ interface TagCount {
   name: string;
   count: number;
   type: string;
+  departmentId?: number;
 }
+
+const DEPARTMENTS = [
+  { id: 1, name: 'Backend', isActive: true },
+  { id: 2, name: 'Frontend', isActive: true },
+  { id: 3, name: 'DevOps', isActive: true },
+] as const;
+
+const getDepartmentCommunities = async (client: any) => {
+  const { data: profiles } = await client
+    .from('profiles')
+    .select('department_id');
+
+  const counts = new Map<number, number>();
+
+  profiles?.forEach((profile: { department_id?: number | null }) => {
+    const departmentId = typeof profile.department_id === 'number' ? profile.department_id : null;
+    if (departmentId === null) {
+      return;
+    }
+
+    counts.set(departmentId, (counts.get(departmentId) || 0) + 1);
+  });
+
+  return DEPARTMENTS.filter((department) => department.isActive).map((department) => ({
+    name: department.name,
+    count: counts.get(department.id) || 0,
+    type: 'user',
+    departmentId: department.id,
+  } satisfies TagCount));
+};
 
 /**
  * GET /api/categories
@@ -24,6 +55,10 @@ categoriesRouter.get('/', async (req: Request, res: Response, next: NextFunction
   try {
     const client = supabaseAdmin ?? supabase;
     const db = getMongoDb();
+
+    if (!client) {
+      throw new Error('Supabase client is not available');
+    }
 
     // Get post tags from Supabase
     const { data: posts } = await client
@@ -85,6 +120,8 @@ categoriesRouter.get('/', async (req: Request, res: Response, next: NextFunction
       });
     });
 
+    const userCommunities = await getDepartmentCommunities(client);
+
     // Convert to array and sort by count
     const allTags = Array.from(tagMap.values()).sort((a, b) => b.count - a.count);
 
@@ -98,7 +135,7 @@ categoriesRouter.get('/', async (req: Request, res: Response, next: NextFunction
       document: allTags.filter(t => t.type === 'document'),
       snippet: allTags.filter(t => t.type === 'snippet'),
       quickie: [] as TagCount[], // Quickies don't have tags yet
-      user: [] as TagCount[] // Would need user skills/interests
+      user: userCommunities,
     };
 
     res.status(200).json({
@@ -145,6 +182,10 @@ categoriesRouter.get('/search', async (req: Request, res: Response, next: NextFu
 async function fetchAllCategories(): Promise<TagCount[]> {
   const client = supabaseAdmin ?? supabase;
   const db = getMongoDb();
+
+  if (!client) {
+    throw new Error('Supabase client is not available');
+  }
 
   // Get all tags from different sources
   const { data: posts } = await client
@@ -200,5 +241,7 @@ async function fetchAllCategories(): Promise<TagCount[]> {
     });
   });
 
-  return Array.from(tagMap.values());
+  const userCommunities = await getDepartmentCommunities(client);
+
+  return [...Array.from(tagMap.values()), ...userCommunities];
 }

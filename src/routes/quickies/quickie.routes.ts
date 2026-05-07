@@ -5,6 +5,7 @@ import {
   getQuickieById,
   getQuickiesByAuthor,
   getFeedQuickies,
+  getLatestQuickies,
   updateQuickie,
   deleteQuickie,
   addViewerToQuickie,
@@ -72,44 +73,20 @@ quickieRouter.post('/', async (req: Request, res: Response, next: NextFunction) 
   }
 });
 
-// Get quickie by ID
-quickieRouter.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+// Get latest quickies (public feed - all recent) - MUST be before /:id
+quickieRouter.get('/feed/latest', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const id = req.params.id as string;
-    const viewerId = await getAuthUserId(req);
-
-    const quickie = await getQuickieById(id);
-
-    if (!quickie) {
-      return res.status(404).json({ message: 'Quickie not found or expired' });
-    }
-
-    // Track viewer if authenticated and not the author
-    if (viewerId && viewerId !== quickie.author_id) {
-      await addViewerToQuickie(id, viewerId);
-    }
-
-    res.status(200).json({ quickie });
-  } catch (err) {
-    next(err);
-  }
-});
-
-// Get quickies by author
-quickieRouter.get('/author/:authorId', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const authorId = req.params.authorId as string;
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
     const skip = parseInt(req.query.skip as string) || 0;
 
-    const quickies = await getQuickiesByAuthor(authorId, limit, skip);
+    const quickies = await getLatestQuickies(limit, skip);
     res.status(200).json({ quickies, count: quickies.length });
   } catch (err) {
     next(err);
   }
 });
 
-// Get feed quickies (from users you follow)
+// Get feed quickies (from users you follow) - MUST be before /:id
 quickieRouter.get('/feed/following', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = await getAuthUserId(req);
@@ -136,6 +113,43 @@ quickieRouter.get('/feed/following', async (req: Request, res: Response, next: N
 
     const quickies = await getFeedQuickies(authorIds, limit, skip);
     res.status(200).json({ quickies, count: quickies.length });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Get quickies by author - MUST be before /:id
+quickieRouter.get('/author/:authorId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const authorId = req.params.authorId as string;
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
+    const skip = parseInt(req.query.skip as string) || 0;
+
+    const quickies = await getQuickiesByAuthor(authorId, limit, skip);
+    res.status(200).json({ quickies, count: quickies.length });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Get quickie by ID - MUST be AFTER specific routes like /feed/*, /author/*
+quickieRouter.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = req.params.id as string;
+    const viewerId = await getAuthUserId(req);
+
+    const quickie = await getQuickieById(id);
+
+    if (!quickie) {
+      return res.status(404).json({ message: 'Quickie not found or expired' });
+    }
+
+    // Track viewer if authenticated and not the author
+    if (viewerId && viewerId !== quickie.author_id) {
+      await addViewerToQuickie(id, viewerId);
+    }
+
+    res.status(200).json({ quickie });
   } catch (err) {
     next(err);
   }

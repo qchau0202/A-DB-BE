@@ -11,7 +11,11 @@
     "start": "node dist/index.js",
     "db:setup:mongo": "node src/db/nosql/001_mongodb_setup.js",
     "seed": "tsx src/db/seed.ts",
-    "seed:api": "tsx src/db/seed-api.ts"
+    "seed:api": "tsx src/db/seed-api.ts",
+    "seed:users": "tsx src/db/seed-users.ts",
+    "reset": "tsx src/db/reset-data.ts",
+    "clean-slate": "tsx src/db/clean-slate.ts --confirm",
+    "reset:soft": "tsx src/db/reset-data.ts"
   },
   "keywords": [],
   "author": "",

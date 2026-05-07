@@ -43,7 +43,15 @@ export const getProfileById = async (id: string) => {
   return data ?? null;
 };
 
+// UUID validation regex
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export const getProfileByUserId = async (userId: string) => {
+  // Validate UUID format to prevent database errors
+  if (!UUID_REGEX.test(userId)) {
+    return null;
+  }
+  
   const client = supabaseAdmin ?? supabase;
   const { data, error } = await client.from('profiles').select('*').eq('user_id', userId).maybeSingle();
 
@@ -66,6 +74,23 @@ export const updateProfileById = async (id: string, payload: ProfilePayload) => 
 
   if (error) {
     throw new Error(`Failed to update profile: ${error.message}`);
+  }
+
+  // Also sync to MongoDB for polyglot persistence
+  if (data && data.user_id) {
+    try {
+      const { updateMongoUser } = await import('../users/user.controller');
+      await updateMongoUser(data.user_id as string, {
+        ...(payload.username && { username: payload.username }),
+        ...(payload.display_name && { name: payload.display_name }),
+        ...(payload.bio && { bio: payload.bio }),
+        ...(payload.avatar_url && { avatar_url: payload.avatar_url }),
+      });
+      console.log(`[Profile] MongoDB user synced for user_id: ${data.user_id}`);
+    } catch (mongoErr) {
+      // Log but don't fail - profile update should still work even if MongoDB is down
+      console.error('[Profile] MongoDB sync failed:', mongoErr);
+    }
   }
 
   return data ?? null;

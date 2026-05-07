@@ -60,6 +60,18 @@ export const getFeedQuickies = async (authorIds: string[], limit = 20, skip = 0)
   return quickies;
 };
 
+// Get latest quickies for public feed (all recent quickies)
+export const getLatestQuickies = async (limit = 20, skip = 0) => {
+  const quickies = await getQuickiesCollection()
+    .find({})
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .toArray();
+
+  return quickies;
+};
+
 export const updateQuickie = async (id: string, authorId: string, updates: Partial<QuickiePayload>) => {
   if (!ObjectId.isValid(id)) {
     throw new Error('Invalid quickie ID');
@@ -136,6 +148,7 @@ export default {
   getQuickieById,
   getQuickiesByAuthor,
   getFeedQuickies,
+  getLatestQuickies,
   updateQuickie,
   deleteQuickie,
   addViewerToQuickie,
