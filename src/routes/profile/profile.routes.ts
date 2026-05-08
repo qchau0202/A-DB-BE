@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { Request, Response, NextFunction } from 'express';
-import { getProfileById, getProfileByUserId, updateProfileById } from '../../controller/profile/profile.controller';
+import { getProfileById, getProfileByUserId, getProfilesByDepartment, updateProfileById } from '../../controller/profile/profile.controller';
 import { followUser, unfollowUser, getFollowers, getFollowing, isFollowing } from '../../controller/profile/follow.controller';
 import { callSupabaseAuth } from '../../controller/auth/auth.controller';
 import { createFollowNotification } from '../../controller/notifications/notification.controller';
@@ -8,6 +8,21 @@ import { createFollowNotification } from '../../controller/notifications/notific
 export const profileRouter = Router();
 
 console.log('[Routes] Profile routes loading...');
+
+profileRouter.get('/department/:departmentId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const departmentId = Number(req.params.departmentId);
+    if (!Number.isInteger(departmentId) || departmentId < 1) {
+      return res.status(400).json({ message: 'Valid department ID is required' });
+    }
+
+    const profiles = await getProfilesByDepartment(departmentId);
+
+    res.status(200).json({ profiles, count: profiles.length });
+  } catch (err) {
+    next(err);
+  }
+});
 
 profileRouter.get('/by-user/:userId', async (req: Request, res: Response, next: NextFunction) => {
   try {

@@ -62,6 +62,21 @@ export const getProfileByUserId = async (userId: string) => {
   return data ?? null;
 };
 
+export const getProfilesByDepartment = async (departmentId: number) => {
+  const client = supabaseAdmin ?? supabase;
+  const { data, error } = await client
+    .from('profiles')
+    .select('*')
+    .eq('department_id', departmentId)
+    .order('display_name', { ascending: true, nullsFirst: false });
+
+  if (error) {
+    throw new Error(`Failed to fetch profiles by department: ${error.message}`);
+  }
+
+  return data ?? [];
+};
+
 export const updateProfileById = async (id: string, payload: ProfilePayload) => {
   const update = {
     ...payload,
@@ -100,5 +115,6 @@ export default {
   createProfile,
   getProfileById,
   getProfileByUserId,
+  getProfilesByDepartment,
   updateProfileById,
 };
