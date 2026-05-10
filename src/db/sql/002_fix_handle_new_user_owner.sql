@@ -49,7 +49,7 @@ BEGIN
         split_part(NEW.email, '@', 1),
         COALESCE(NEW.raw_user_meta_data ->> 'display_name', split_part(NEW.email, '@', 1))
       )
-      ON CONFLICT (user_id) DO NOTHING;
+      ON CONFLICT (id) DO NOTHING;
     END IF;
   ELSE
     INSERT INTO public.profiles (id, username, display_name)

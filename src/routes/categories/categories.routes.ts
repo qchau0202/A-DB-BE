@@ -60,11 +60,14 @@ categoriesRouter.get('/', async (req: Request, res: Response, next: NextFunction
       throw new Error('Supabase client is not available');
     }
 
-    // Get post tags from Supabase
-    const { data: posts } = await client
-      .from('posts')
-      .select('tags, views, reactions')
-      .eq('is_public', true);
+    // Get post tags from MongoDB
+    const posts = await db.collection('posts')
+      .find({ visibility: 'public' })
+      .project({ tags: 1 })
+      .toArray();
+
+    // Get total posts count
+    const postsCount = await db.collection('posts').countDocuments({ visibility: 'public' });
 
     // Get document tags from MongoDB
     const documents = await db.collection('documents')
@@ -77,6 +80,11 @@ categoriesRouter.get('/', async (req: Request, res: Response, next: NextFunction
       .find({ isPublic: true })
       .project({ tags: 1 })
       .toArray();
+
+    // Get counts from database
+    const documentsCount = await db.collection('documents').countDocuments({ is_published: true });
+    const snippetsCount = await db.collection('snippets').countDocuments({ isPublic: true });
+    const quickiesCount = await db.collection('quickies').countDocuments();
 
     // Aggregate tag counts
     const tagMap = new Map<string, TagCount>();
@@ -134,7 +142,7 @@ categoriesRouter.get('/', async (req: Request, res: Response, next: NextFunction
       post: allTags.filter(t => t.type === 'post'),
       document: allTags.filter(t => t.type === 'document'),
       snippet: allTags.filter(t => t.type === 'snippet'),
-      quickie: [] as TagCount[], // Quickies don't have tags yet
+      quickie: [] as TagCount[], // Quickies don't have tags
       user: userCommunities,
     };
 
@@ -146,7 +154,13 @@ categoriesRouter.get('/', async (req: Request, res: Response, next: NextFunction
       snippets: byType.snippet,
       quickies: byType.quickie,
       users: byType.user,
-      total: allTags.length
+      total: allTags.length,
+      counts: {
+        posts: postsCount || 0,
+        quickies: quickiesCount,
+        documents: documentsCount,
+        snippets: snippetsCount,
+      }
     });
   } catch (error) {
     next(error);
@@ -188,10 +202,10 @@ async function fetchAllCategories(): Promise<TagCount[]> {
   }
 
   // Get all tags from different sources
-  const { data: posts } = await client
-    .from('posts')
-    .select('tags')
-    .eq('is_public', true);
+  const posts = await db.collection('posts')
+    .find({ visibility: 'public' })
+    .project({ tags: 1 })
+    .toArray();
 
   const documents = await db.collection('documents')
     .find({ is_published: true })

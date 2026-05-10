@@ -44,7 +44,7 @@ CREATE POLICY "Admins manage departments"
   WITH CHECK (auth.jwt() ->> 'role' = 'admin');
 
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  id uuid NOT NULL,
   username text UNIQUE,
   display_name text,
   bio text,
@@ -55,7 +55,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   following uuid[] DEFAULT '{}'::uuid[],
   follower_count integer DEFAULT 0,
   created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+  updated_at timestamptz DEFAULT now(),
+  user_id uuid,
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 
 DROP TRIGGER IF EXISTS trg_profiles_updated_at ON public.profiles;
@@ -132,11 +135,12 @@ CREATE POLICY "Users unfollow as self"
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, username, display_name)
+  INSERT INTO public.profiles (id, username, display_name, user_id)
   VALUES (
     NEW.id,
     split_part(NEW.email, '@', 1),
-    COALESCE(NEW.raw_user_meta_data ->> 'display_name', split_part(NEW.email, '@', 1))
+    COALESCE(NEW.raw_user_meta_data ->> 'display_name', split_part(NEW.email, '@', 1)),
+    NEW.id
   )
   ON CONFLICT (id) DO NOTHING;
 

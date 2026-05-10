@@ -21,11 +21,12 @@ The script reads:
 
 ## Collections initialized
 
+- `users`
 - `posts`
 - `documents`
 - `quickies`
 - `comments`
-- `userReactions`
+- `notifications`
 
 ## Notes
 

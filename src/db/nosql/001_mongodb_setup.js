@@ -13,6 +13,35 @@ if (!mongodbUri) {
 
 const collectionSpecs = [
   {
+    name: 'users',
+    validator: {
+      $jsonSchema: {
+        bsonType: 'object',
+        required: ['supabase_id', 'email', 'username', 'name'],
+        properties: {
+          supabase_id: { bsonType: 'string' },
+          email: { bsonType: 'string' },
+          username: { bsonType: 'string' },
+          name: { bsonType: 'string' },
+          bio: { bsonType: 'string' },
+          avatar_url: { bsonType: 'string' },
+          created_at: { bsonType: 'date' },
+          updated_at: { bsonType: ['date', 'null'] },
+        },
+      },
+    },
+    indexes: [
+      { key: { supabase_id: 1 }, options: { name: 'supabase_id_idx', unique: true } },
+      { key: { email: 1 }, options: { name: 'email_idx' } },
+      { key: { username: 1 }, options: { name: 'username_idx' } },
+    ],
+    notes: [
+      'users collection stores user data synced from Supabase Auth',
+      'supabase_id is the UUID from Supabase auth.users',
+      'This collection is used for MongoDB-specific user data',
+    ],
+  },
+  {
     name: 'posts',
     validator: {
       $jsonSchema: {

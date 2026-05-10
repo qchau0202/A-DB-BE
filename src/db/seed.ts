@@ -223,11 +223,10 @@ async function seedDatabase() {
     await db.collection('documents').deleteMany({});
     await db.collection('quickies').deleteMany({});
     await db.collection('comments').deleteMany({});
-    await db.collection('profiles').deleteMany({});
-    
-    // Seed users in Supabase Auth and MongoDB
-    console.log('Seeding users...');
     await db.collection('users').deleteMany({});
+
+    // Note: profiles are in Supabase, not MongoDB
+    // To clear profiles, use reset-data.ts or clean-slate.ts
 
     // Create users in Supabase Auth (if configured) and get their UUIDs
     const userIdMap = new Map<string, string>(); // oldId -> newId (Supabase UUID or oldId)
@@ -255,26 +254,10 @@ async function seedDatabase() {
 
     console.log(`Created ${USERS.length} users${SUPABASE_URL ? ' in Supabase Auth' : ''}`);
 
-    // Seed profiles
-    console.log('Seeding profiles...');
-    const profiles = USERS.map((user, i) => {
-      const finalId = userIdMap.get(user.id)!;
-      return {
-        user_id: finalId,
-        username: user.username,
-        display_name: user.name,
-        bio: user.bio,
-        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`,
-        department_id: DEPARTMENTS[i % DEPARTMENTS.length],
-        follower_count: Math.floor(Math.random() * 500),
-        following: USERS.filter(u => u.id !== user.id)
-          .slice(0, Math.floor(Math.random() * 5) + 1)
-          .map(u => userIdMap.get(u.id)!),
-        created_at: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000),
-        updated_at: new Date(),
-      };
-    });
-    await db.collection('profiles').insertMany(profiles);
+    // Note: profiles are stored in Supabase, not MongoDB
+    // They will be auto-created by the Supabase trigger when users sign up
+    // or manually via the backend API
+
     
     // Seed posts - create more posts for 50 users
     console.log('Seeding posts...');
@@ -369,13 +352,11 @@ async function seedDatabase() {
         const commenter = USERS[Math.floor(Math.random() * USERS.length)]!;
         const commenterId = userIdMap.get(commenter.id)!;
         comments.push({
-          post_id: post._id.toString(),
+          target_id: post._id,
           author_id: commenterId,
           content: COMMENTS[Math.floor(Math.random() * COMMENTS.length)],
-          parent_id: null,
-          reactions: {
-            like: Math.floor(Math.random() * 10),
-          },
+          parent_comment_id: null,
+          is_deleted: false,
           createdAt: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000),
           updatedAt: new Date(),
         });
@@ -387,11 +368,11 @@ async function seedDatabase() {
     
     console.log('Database seed completed successfully!');
     console.log(`   - ${USERS.length} users (password: 123456)`);
-    console.log(`   - ${profiles.length} profiles`);
     console.log(`   - ${posts.length} posts`);
     console.log(`   - ${documents.length} documents`);
     console.log(`   - ${quickies.length} quickies`);
     console.log(`   - ${comments.length} comments`);
+    console.log(`   - Profiles: Created in Supabase via trigger or API`);
     
   } catch (error) {
     console.error('Seed failed:', error);
